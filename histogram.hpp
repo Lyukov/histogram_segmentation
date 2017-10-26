@@ -90,10 +90,10 @@ class Histogram {
 };
 
 template <size_t N, typename T>
-class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<N, T> > {
+class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<N, T>> {
     Node<N, T> **body;
     size_t ind;
-    
+
    public:
     NodeIterator(const Node<N, T> **_body, size_t _ind = 0) : body(_body), ind(ind) {}
     NodeIterator(const Histogram<N, T> &hist, size_t _ind = 0) : body(&(hist[0])), ind(ind) {}
@@ -231,4 +231,39 @@ template <size_t N, typename T>
 void Histogram<N, T>::sort() {
     std::sort(NodeIterator<N, T>(*this, 0), NodeIterator<N, T>(*this, _size),
               [](const Node<N, T> &n1, const Node<N, T> &n2) { return n1.count < n2.count; });
+}
+
+template <size_t N, typename T>
+void Histogram<N, T>::rebuild_tree() {
+    head = &(body[0][0]);
+    head->parent = NULL;
+    head->left = NULL;
+    head->right = NULL;
+    NodeIterator<N, T> last(*this, size());
+    for(NodeIterator<N, T> it(*this, 1); it != last; ++it) {
+        it->left = NULL;
+        it->right = NULL;
+        Node<N, T> *p = head;
+        do {
+            if(it->key < p->key) {
+                if(p->left != NULL) {
+                    p = p->left;
+                } else {
+                    p->left = it;
+                    it->parent = p;
+                    break;
+                }
+            } else if(it->key > p->key) {
+                if(p->right != NULL) {
+                    p = p->right;
+                } else {
+                    p->right = it;
+                    it->parent = p;
+                    break;
+                }
+            } else {
+                break;
+            }
+        } while(true);
+    }
 }

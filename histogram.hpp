@@ -90,7 +90,10 @@ class Histogram {
 };
 
 template <size_t N, typename T>
-class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<N, T>> {
+class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<N, T> > {
+    Node<N, T> **body;
+    size_t ind;
+    
    public:
     NodeIterator(const Node<N, T> **_body, size_t _ind = 0) : body(_body), ind(ind) {}
     NodeIterator(const Histogram<N, T> &hist, size_t _ind = 0) : body(&(hist[0])), ind(ind) {}
@@ -147,10 +150,6 @@ class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<
     inline bool operator<(const NodeIterator &rhs) const { return ind < rhs.ind; }
     inline bool operator>=(const NodeIterator &rhs) const { return ind >= rhs.ind; }
     inline bool operator<=(const NodeIterator &rhs) const { return ind <= rhs.ind; }
-
-   private:
-    Node<N, T> **body;
-    size_t ind;
 };
 
 template <size_t N, typename T>

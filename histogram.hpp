@@ -11,6 +11,38 @@ class Key {
    public:
     T &operator[](size_t index) { return body[index]; }
     T operator[](size_t index) const { return body[index]; }
+    bool operator==(const Key& other) const {
+        for (size_t i = 0; i < N; ++i) {
+            if (body[i] != other.body[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    bool operator!=(const Key& other) const {
+        for (size_t i = 0; i < N; ++i) {
+            if (body[i] != other.body[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool operator<(const Key& other) const {
+        for (size_t i = 0; i < N; ++i) {
+            if (body[i] != other.body[i]) {
+                return body[i] < other.body[i];
+            }
+        }
+        return false;
+    }
+    bool operator>(const Key& other) const {
+        for (size_t i = 0; i < N; ++i) {
+            if (body[i] != other.body[i]) {
+                return body[i] > other.body[i];
+            }
+        }
+        return false;
+    }
 };
 
 template <size_t N, typename T>

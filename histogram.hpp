@@ -4,14 +4,22 @@
 #include <vector>
 
 #define BITS 16
-#define BLOCKSIZE 1 << BITS
-#define MASK BLOCKSIZE - 1
+#define BLOCKSIZE (1 << BITS)
+#define MASK (BLOCKSIZE - 1)
 
 template <size_t N, typename T>
 class Key {
-    T body[N];
+    T *body;
 
    public:
+    Key() { body = new T[N]; }
+    Key(T *p) { body = p; }
+    Key(const Key &other) {
+        body = new T[N];
+        for(size_t i = 0; i < N; ++i) {
+            body[i] = other.body[i];
+        }
+    }
     T &operator[](size_t index) { return body[index]; }
     T operator[](size_t index) const { return body[index]; }
     bool operator==(const Key &other) const {
@@ -69,34 +77,12 @@ struct Node {
 };
 
 template <size_t N, typename T>
-class Histogram {
-    Node<N, T> *free;
-    std::vector<Node<N, T> *> body;
-    Node<N, T> *head;
-    size_t _size;
-
-    Histogram();
-    Node<N, T> *allocate();
-    Node<N, T> *get_new();
-    Node<N, T> &as_tree_at(const Key<N, T> key);
-
-   public:
-    void add(double w, const Key<N, T> key);
-    void remove(const Key<N, T> key);
-    void sort();
-    void rebuild_tree();
-    size_t size() const { return _size; }
-    Node<N, T> &operator[](size_t index);
-};
-
-template <size_t N, typename T>
 class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<N, T>> {
     Node<N, T> **body;
     size_t ind;
 
    public:
-    NodeIterator(const Node<N, T> **_body, size_t _ind = 0) : body(_body), ind(ind) {}
-    NodeIterator(const Histogram<N, T> &hist, size_t _ind = 0) : body(&(hist[0])), ind(ind) {}
+    NodeIterator(Node<N, T> **_body, size_t _ind = 0) : body(_body), ind(_ind) {}
     NodeIterator(const NodeIterator &rhs) : body(rhs.body), ind(rhs.ind) {}
     inline NodeIterator &operator+=(int rhs) {
         ind += rhs;
@@ -150,6 +136,34 @@ class NodeIterator : public std::iterator<std::random_access_iterator_tag, Node<
     inline bool operator<(const NodeIterator &rhs) const { return ind < rhs.ind; }
     inline bool operator>=(const NodeIterator &rhs) const { return ind >= rhs.ind; }
     inline bool operator<=(const NodeIterator &rhs) const { return ind <= rhs.ind; }
+    
+    friend std::ostream &operator<< (std::ostream &str, const NodeIterator &it) {
+        str << it.body << ' ' << it.ind;
+        return str;
+    }
+};
+
+template <size_t N, typename T>
+class Histogram {
+    Node<N, T> *free;
+    std::vector<Node<N, T> *> body;
+    Node<N, T> *head;
+    size_t _size;
+
+    Node<N, T> *allocate();
+    Node<N, T> *get_new();
+    Node<N, T> &as_tree_at(const Key<N, T> &key);
+
+   public:
+    Histogram();
+    void add(double w, const Key<N, T> &key);
+    void remove(const Key<N, T> key);
+    void sort();
+    void rebuild_tree();
+    size_t size() const { return _size; }
+    NodeIterator<N, T> begin() { return NodeIterator<N, T>(&(body[0]), 0); }
+    NodeIterator<N, T> end() { return NodeIterator<N, T>(&(body[0]), _size); }
+    Node<N, T> &operator[](size_t index);
 };
 
 template <size_t N, typename T>
@@ -161,7 +175,8 @@ Histogram<N, T>::Histogram() {
 
 template <size_t N, typename T>
 Node<N, T> *Histogram<N, T>::allocate() {
-    std::vector<Node<N, T>> __p(BLOCKSIZE);
+    /* std::vector<Node<N, T>> __p(BLOCKSIZE);*/
+    Node<N, T> *__p = new Node<N, T>[BLOCKSIZE];
     body.push_back(&(__p[0]));
     for(size_t i = 0; i < BLOCKSIZE - 1; ++i) {
         __p[i].next = &(__p[i + 1]);
@@ -172,23 +187,24 @@ Node<N, T> *Histogram<N, T>::allocate() {
 
 template <size_t N, typename T>
 Node<N, T> *Histogram<N, T>::get_new() {
-    if(free.next == NULL) {
-        free.next = allocate();
+    if(free->next == NULL) {
+        free->next = allocate();
     }
     Node<N, T> *result = free;
-    free = free.next;
+    free = free->next;
     result->next = NULL;
     ++_size;
     return result;
 }
 
 template <size_t N, typename T>
-Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> key) {
+Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> &key) {
     if(head == NULL) {
         head = get_new();
         head->key = key;
         return *head;
     }
+
     Node<N, T> *p = head;
     do {
         if(key < p->key) {
@@ -199,7 +215,7 @@ Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> key) {
                 p->left = result;
                 result->parent = p;
                 result->key = key;
-                return result;
+                return *result;
             }
         } else if(key > p->key) {
             if(p->right != NULL) {
@@ -209,16 +225,16 @@ Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> key) {
                 p->right = result;
                 result->parent = p;
                 result->key = key;
-                return result;
+                return *result;
             }
         } else {
-            return p;
+            return *p;
         }
     } while(true);
 }
 
 template <size_t N, typename T>
-void Histogram<N, T>::add(double w, const Key<N, T> key) {
+void Histogram<N, T>::add(double w, const Key<N, T> &key) {
     as_tree_at(key).count += w;
 }
 
@@ -229,7 +245,7 @@ Node<N, T> &Histogram<N, T>::operator[](size_t index) {
 
 template <size_t N, typename T>
 void Histogram<N, T>::sort() {
-    std::sort(NodeIterator<N, T>(*this, 0), NodeIterator<N, T>(*this, _size),
+    std::sort(begin(), end(),
               [](const Node<N, T> &n1, const Node<N, T> &n2) { return n1.count < n2.count; });
 }
 

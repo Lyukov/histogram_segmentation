@@ -13,12 +13,24 @@ class Key {
 
    public:
     Key() { body = new T[N]; }
-    Key(T *p) { body = p; }
+    Key(T *p) {
+        body = new T[N];
+        for(size_t i = 0; i < N; ++i) {
+            body[i] = p[i];
+        }
+    }
     Key(const Key &other) {
         body = new T[N];
         for(size_t i = 0; i < N; ++i) {
             body[i] = other.body[i];
         }
+    }
+    ~Key() {delete[] body;}
+    Key& operator=(const Key &other) {
+        for(size_t i = 0; i < N; ++i) {
+            body[i] = other.body[i];
+        }
+        return *this;
     }
     T &operator[](size_t index) { return body[index]; }
     T operator[](size_t index) const { return body[index]; }
@@ -53,6 +65,15 @@ class Key {
             }
         }
         return false;
+    }
+    
+    friend std::ostream &operator<< (std::ostream &str, const Key &key) {
+        str << '(' << int(key[0]);
+        for(size_t i = 1; i < N; ++i) {
+            str << ", " << int(key[i]);
+        }
+        str << ")";
+        return str;
     }
 };
 
@@ -152,11 +173,11 @@ class Histogram {
 
     Node<N, T> *allocate();
     Node<N, T> *get_new();
-    Node<N, T> &as_tree_at(const Key<N, T> &key);
+    Node<N, T> &as_tree_at(const Key<N, T> key);
 
    public:
     Histogram();
-    void add(double w, const Key<N, T> &key);
+    void add(double w, const Key<N, T> key);
     void remove(const Key<N, T> key);
     void sort();
     void rebuild_tree();
@@ -198,7 +219,7 @@ Node<N, T> *Histogram<N, T>::get_new() {
 }
 
 template <size_t N, typename T>
-Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> &key) {
+Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> key) {
     if(head == NULL) {
         head = get_new();
         head->key = key;
@@ -234,7 +255,7 @@ Node<N, T> &Histogram<N, T>::as_tree_at(const Key<N, T> &key) {
 }
 
 template <size_t N, typename T>
-void Histogram<N, T>::add(double w, const Key<N, T> &key) {
+void Histogram<N, T>::add(double w, const Key<N, T> key) {
     as_tree_at(key).count += w;
 }
 
